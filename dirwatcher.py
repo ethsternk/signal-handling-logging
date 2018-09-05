@@ -3,6 +3,7 @@ import logging
 import time
 import os
 exit_flag = False
+start_time = time.time()
 
 logging.basicConfig(filename='log.log', level=logging.DEBUG,
                     format='%(asctime)s:%(levelname)s:%(message)s')
@@ -18,8 +19,14 @@ def signal_handler(sig_num, frame):
     :param frame: Not used
     :return None
     """
+
+    signames = dict((k, v) for v, k in reversed(sorted(
+        signal.__dict__.items())) if v.startswith('SIG')
+        and not v.startswith('SIG_'))
+    logging.warning('Received {} signal.'.format(signames[sig_num]))
     logging.debug('Program has stopped.')
-    logging.debug('Received ' + signal.Signals(sig_num).name)
+    logging.debug('Program was up for about ' +
+                  str(int(time.time() - start_time)) + ' seconds.')
     exit_flag = True
 
 
@@ -38,17 +45,21 @@ def main():
 
     while not exit_flag:
         # Do my long-running stuff
-        for file in os.listdir(dir):
-            text = open(dir + "/" + file).read().split('\n')
-            for i, line in enumerate(text):
-                if magic_text in line:
-                    log = 'magic text in ' + file + ' in line ' + str(i)
-                    if log not in open("log.log").read():
-                        logging.info('magic text in ' + file +
-                                     ' in line ' + str(i))
+        if os.path.isdir(dir):
+            for file in os.listdir(dir):
+                text = open(dir + "/" + file).read().split('\n')
+                for i, line in enumerate(text):
+                    if magic_text in line:
+                        log = 'magic text in ' + file + ' in line ' + str(i)
+                        if log not in open("log.log").read():
+                            logging.info('magic text in ' + file +
+                                         ' in line ' + str(i))
+        else:
+            logging.warning("Given directory does not exist.")
+            time.sleep(5)
 
         # put a sleep inside my while loop so I don't peg the cpu usage at 100%
-        time.sleep(10)
+        time.sleep(1)
 
 
 if __name__ == '__main__':
